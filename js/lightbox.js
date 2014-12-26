@@ -424,8 +424,9 @@
 
   // add a jquery function for manually start
   $.fn.lightbox = function(options) {
+    var self = this;
     var lightbox = new Lightbox(options);
-    lightbox.start($(this));
+    lightbox.start(self);
   };
 
   // exports Lightbox to global namespace
