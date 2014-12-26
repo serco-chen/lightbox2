@@ -1,15 +1,24 @@
 /**
- * Lightbox v2.7.1
+ * Lightbox v2.7.1a(This is a modified version)
  * by Lokesh Dhakar - http://lokeshdhakar.com/projects/lightbox2/
  *
  * @license http://creativecommons.org/licenses/by/2.5/
  * - Free for use in both personal and commercial projects
  * - Attribution requires leaving author name, author link, and the license info intact
+ *
+ * Major modifications from v2.7.1
+ * - Export Lightbox function to global namespace
+ * - Add a jQuery function for manually start lightbox
+ * - Options can be extended when instantiates
  */
 
 (function() {
+
+  // Save a reference to the global object
+  var root = this;
+
   // Use local alias
-  var $ = jQuery;
+  var $ = root.jQuery;
 
   var LightboxOptions = (function() {
     function LightboxOptions() {
@@ -21,7 +30,7 @@
       this.alwaysShowNavOnTouchDevices = false;
       this.wrapAround                  = false;
     }
-    
+
     // Change to localize to non-english language
     LightboxOptions.prototype.albumLabel = function(curImageNum, albumSize) {
       return "Image " + curImageNum + " of " + albumSize;
@@ -33,7 +42,9 @@
 
   var Lightbox = (function() {
     function Lightbox(options) {
-      this.options           = options;
+      defaultOption = new LightboxOptions()
+
+      this.options           = $.extend({}, defaultOption, typeof options == 'object' && options);
       this.album             = [];
       this.currentImageIndex = void 0;
       this.init();
@@ -59,7 +70,7 @@
     Lightbox.prototype.build = function() {
       var self = this;
       $("<div id='lightboxOverlay' class='lightboxOverlay'></div><div id='lightbox' class='lightbox'><div class='lb-outerContainer'><div class='lb-container'><img class='lb-image' src='' /><div class='lb-nav'><a class='lb-prev' href='' ></a><a class='lb-next' href='' ></a></div><div class='lb-loader'><a class='lb-cancel'></a></div></div></div><div class='lb-dataContainer'><div class='lb-data'><div class='lb-details'><span class='lb-caption'></span><span class='lb-number'></span></div><div class='lb-closeContainer'><a class='lb-close'></a></div></div></div></div>").appendTo($('body'));
-      
+
       // Cache jQuery objects
       this.$lightbox       = $('#lightbox');
       this.$overlay        = $('#lightboxOverlay');
@@ -71,7 +82,7 @@
       this.containerRightPadding = parseInt(this.$container.css('padding-right'), 10);
       this.containerBottomPadding = parseInt(this.$container.css('padding-bottom'), 10);
       this.containerLeftPadding = parseInt(this.$container.css('padding-left'), 10);
-      
+
       // Attach event handlers to the newly minted DOM elements
       this.$overlay.hide().on('click', function() {
         self.end();
@@ -141,6 +152,7 @@
 
       // Support both data-lightbox attribute and rel attribute implementations
       var dataLightboxValue = $link.attr('data-lightbox');
+      var refLightboxValue = $link.attr('rel');
       var $links;
 
       if (dataLightboxValue) {
@@ -151,7 +163,7 @@
             imageNumber = i;
           }
         }
-      } else {
+      } else if (refLightboxValue) {
         if ($link.attr('rel') === 'lightbox') {
           // If image is not part of a set
           addToAlbum($link);
@@ -165,8 +177,10 @@
             }
           }
         }
+      } else {
+        addToAlbum($link);
       }
-      
+
       // Position Lightbox
       var top  = $window.scrollTop() + this.options.positionFromTop;
       var left = $window.scrollLeft();
@@ -202,7 +216,7 @@
 
         $image.width(preloader.width);
         $image.height(preloader.height);
-        
+
         if (self.options.fitImagesInViewport) {
           // Fit image inside the viewport.
           // Take into account the border around the image and an additional 10px gutter on each side.
@@ -244,12 +258,12 @@
     // Animate the size of the lightbox to fit the image we are showing
     Lightbox.prototype.sizeContainer = function(imageWidth, imageHeight) {
       var self = this;
-      
+
       var oldWidth  = this.$outerContainer.outerWidth();
       var oldHeight = this.$outerContainer.outerHeight();
       var newWidth  = imageWidth + this.containerLeftPadding + this.containerRightPadding;
       var newHeight = imageHeight + this.containerTopPadding + this.containerBottomPadding;
-      
+
       function postResize() {
         self.$lightbox.find('.lb-dataContainer').width(newWidth);
         self.$lightbox.find('.lb-prevLink').height(newHeight);
@@ -273,7 +287,7 @@
     Lightbox.prototype.showImage = function() {
       this.$lightbox.find('.lb-loader').hide();
       this.$lightbox.find('.lb-image').fadeIn('slow');
-    
+
       this.updateNav();
       this.updateDetails();
       this.preloadNeighboringImages();
@@ -330,15 +344,15 @@
             location.href = $(this).attr('href');
           });
       }
-    
+
       if (this.album.length > 1 && this.options.showImageNumberLabel) {
         this.$lightbox.find('.lb-number').text(this.options.albumLabel(this.currentImageIndex + 1, this.album.length)).fadeIn('fast');
       } else {
         this.$lightbox.find('.lb-number').hide();
       }
-    
+
       this.$outerContainer.removeClass('animating');
-    
+
       this.$lightbox.find('.lb-dataContainer').fadeIn(this.options.resizeDuration, function() {
         return self.sizeOverlay();
       });
@@ -403,9 +417,18 @@
 
   })();
 
+  // create an instance for data-api
   $(function() {
-    var options  = new LightboxOptions();
-    var lightbox = new Lightbox(options);
+    var lightbox = new Lightbox();
   });
+
+  // add a jquery function for manually start
+  $.fn.lightbox = function(options) {
+    var lightbox = new Lightbox(options);
+    lightbox.start($(this));
+  };
+
+  // exports Lightbox to global namespace
+  root.Lightbox = Lightbox
 
 }).call(this);
